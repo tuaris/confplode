@@ -1,0 +1,135 @@
+#!/bin/sh
+#-
+# Copyright (c) 2020 Daniel Morante
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+#
+#
+
+set -e
+
+progname=${0##*/}
+
+#
+# Print an error message and exit.
+#
+error() {
+	echo "$progname: $*" >&2
+	exit 1
+}
+
+#
+# Print a usage string and exit.
+#
+usage() {
+	echo "usage: $progname [-hbfo]" >&2
+	exit 1
+}
+
+#
+# Merge all files into one if directory was given, or just the single file
+#
+build_section() {
+	if [ -d $1 ]; then 
+		for f in ${1%/}/*.$2; do (cat "${f}"; echo; echo); done
+	else
+		(cat "${1}"; echo; echo)
+	fi
+}
+
+#
+# Main program.
+#
+main() {
+	# Default file extension
+	opt_e='conf'
+
+	# parse command-line arguments
+	while getopts "h:f:b:o:e:" option ; do
+		case $option in
+		h)
+			opt_h=$OPTARG
+			;;
+		b)
+			opt_b=$OPTARG
+			;;
+		f)
+			opt_f=$OPTARG
+			;;
+		o)
+			opt_o=$OPTARG
+			;;
+		e)
+			opt_e=$OPTARG
+			;;
+		*)
+			usage
+			;;
+		esac
+	done
+	shift $((OPTIND-1))
+
+	if [ $OPTIND -le $# ] ; then
+		usage
+	fi
+
+	conf_header=""
+	conf_body=""
+	conf_footer=""
+
+	# Build the header
+	if [ ! -z $opt_h ] ; then
+		conf_header="$(build_section ${opt_h} ${opt_e})"
+	fi
+
+	# Build body
+	if [ ! -z $opt_b ] ; then
+		conf_body="$(build_section ${opt_b} ${opt_e})"
+	fi
+
+	# Build footer
+	if [ ! -z $opt_f ] ; then
+		conf_footer="$(build_section ${opt_f} ${opt_e})"
+	fi
+
+	output=""
+
+	if [ ! -z "$conf_header" ]; then 
+		output="$(echo "${output}"; echo "${conf_header}"; echo)"
+	fi
+	if [ ! -z "$conf_body" ]; then 
+		output="$(echo "${output}"; echo "${conf_body}"; echo)"
+	fi
+	if [ ! -z "$conf_footer" ]; then 
+		output="$(echo "${output}"; echo "${conf_footer}"; echo)"
+	fi		
+	
+	if [ -z $opt_o ] || [ $opt_o == '-' ] ; then
+		echo "${output}"
+	else
+		echo "${output}" > $opt_o
+	fi
+	
+}
+
+main "$@"
