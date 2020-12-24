@@ -6,7 +6,7 @@ A set of tools to aid in the administration of FreeBSD systems.
 
 ### `build-config` Lets you manage a .conf file using a modular approach.
 
-Provide it a header (`-h`), body (`b`), or footer (`f`) as either a directory path or file. 
+Provide it a header (`-h`), body (`-b`), or footer (`-f`) as either a directory path or file. 
 It will merge all items togehter to create a single file that will be printed on the standard output
 or to a file provided by the `-o` option.
 
