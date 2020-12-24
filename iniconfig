@@ -1,0 +1,108 @@
+#!/bin/sh
+#-
+# Copyright (c) 2020 Daniel Morante
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+#
+#
+
+set -e
+
+progname=${0##*/}
+
+#
+# Print an error message and exit.
+#
+error() {
+	echo "$progname: $*" >&2
+	exit 1
+}
+
+#
+# Print a usage string and exit.
+#
+usage() {
+	echo "usage: $progname [-hbfo]" >&2
+	exit 1
+}
+
+#
+# Main program.
+#
+main () {
+	while getopts :f:s: flag; do
+		case "$flag" in
+		f) ini_config=$OPTARG ;;
+		s) ini_section=$OPTARG ;;
+		\?) echo "Invalid option: -$OPTARG" >&2; return 1 ;;
+		:) echo "Option -$OPTARG requires an argument." >&2; return 1 ;;
+		esac
+	done
+	shift $(($OPTIND-1))
+
+	ini_value=$1
+	ini_directive=`echo $ini_value | cut -d'=' -f1`
+
+	if [ -z "$ini_value" ] || [ -z "$ini_section" ] || [ -z "$ini_directive" ] || [ -z "$ini_config" ]; then	echo -e \\n"Mssing arguments"; return 1; fi
+
+	# Keep track of the end of file line
+	last_line=$(awk 'END {print NR}' $ini_config)
+
+	# Find out what line the section begins
+	starting_line=$(awk "/\[${ini_section}\]/ {print FNR}" $ini_config)
+
+	# If the section does not exists
+	if [ -z "$starting_line" ]; then
+		# Add this section
+		starting_line=$last_line
+		echo -e "[${ini_section}]" >> $ini_config;
+	fi
+
+	# Find out what line the section ends
+	next_section=$(awk "NR>${starting_line}&&/\[.*\]/ {print FNR}" $ini_config)
+	if [ -z "$next_section" ]; then 
+		ending_line=$last_line
+	else
+		ending_line=$(($next_section - 1))
+	fi
+
+	# Make the change within the disired range
+	# Search starts right after the section header, not including it.
+	starting_line=$(($starting_line + 1))
+	if awk "NR==${starting_line},NR==${ending_line}" $ini_config | grep -sq $ini_directive >&2; then
+		sed -i '' -e "${starting_line},${ending_line}s#$ini_directive.*#$ini_value#" $ini_config
+	else
+		insert_line=$ending_line
+		# If we are at EOF, add a new line
+		if [ $insert_line == $last_line ]; then echo >> $ini_config; fi
+		before_line=$(( $ending_line - 1))
+		before_line_value=$(awk "NR==${before_line}" $ini_config)
+		if [ -z "$before_line_value" ]; then insert_line=$before_line; fi
+		insert_line_value=$(awk "NR==${insert_line}" $ini_config)
+		if [ ! -z "$insert_line_value" ]; then insert_line=$(($insert_line + 1)); fi
+		#echo -e "${insert_line}\ni\n${ini_value}\n.\n\$\na\n\n.\n?^..*?+1,.d\nw\n" | ed -s $ini_config
+		echo -e "${insert_line}\ni\n${ini_value}\n.\nw\n" | ed -s $ini_config
+	fi
+}
+
+main "$@"

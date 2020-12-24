@@ -30,3 +30,44 @@ monolithic configuration file.
 ```
 build-config -h /usr/local/etc/jail.d/header.inc -b /usr/local/etc/jail.d -o /etc/jail.conf
 ```
+
+### `setconfig` Lets you edit a .conf file from the command line.
+
+Provide it a file (`-f`) and the option and value to add or change.  Enclose the option and 
+value in double or single quotes if nessecary.
+
+```
+setconfig \
+	-f /path/to/file \
+	"optionname=optionvalue"
+```
+
+#### Usage example
+
+Change the port number a daemon will listen on.
+
+```
+setconfig -f /usr/local/etc/deamon.conf port=8080
+```
+
+### `iniconfig` Lets you edit a INI file from the command line.
+
+Provide it a file (`-f`) and optional section name (`-s`) within the file along with the directive and 
+value to add or change.   Enclose the directive and value in double or single quotes if nessecary.
+
+If the section does not exist, it will be added.
+
+```
+iniconfig \
+	-f /path/to/file \
+	-s section_name \
+	directvive=value
+```
+
+#### Usage example
+
+Set the directive under the database section in the settings file.
+
+```
+iniconfig -f /usr/local/etc/settings.ini -s database user=internal
+```
