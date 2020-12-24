@@ -1,6 +1,6 @@
 # FreeBSD Admin Tools
 
-A set of tools to aid in the administration of FreeBSD systems.
+A set of tools to aid in the DevOps style administration of FreeBSD systems.
 
 ## About
 
