@@ -4,7 +4,7 @@ A set of tools to aid in the administration of FreeBSD systems.
 
 ## About
 
-`build-config` Lets you manage a .conf file using a modular approach.
+### `build-config` Lets you manage a .conf file using a modular approach.
 
 Provide it a header (`-h`), body (`b`), or footer (`f`) as either a directory path or file. 
 It will merge all items togehter to create a single file that will be printed on the standard output
@@ -22,7 +22,7 @@ build-config \
 	-e file_ext
 ```
 
-### Usage example
+#### Usage example
 
 Manage your FreeBSD jails as individual config files in a directory instead of having to edit a
 monolithic configuration file.
